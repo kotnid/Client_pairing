@@ -16,7 +16,7 @@ def disconnect_from_server():
 def request_connected_clients():
     client_socket.sendall("get_clients".encode('utf-8'))
     data = client_socket.recv(1024).decode('utf-8')
-    print("Connected clients:", data)
+    print(data)
 
 def choose_client():
     client_id = input("Enter the client ID to pair with: ")
@@ -39,5 +39,5 @@ def start_client():
             choose_client()
         else:
             print("Invalid choice. Please try again.")
-            
+
 start_client()
