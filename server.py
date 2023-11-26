@@ -28,23 +28,43 @@ def handle_client(client_socket, client_address,client_id):
             elif data.startswith("pair"):
                 pair_id = data.split(" ")[1]
                 if connected_clients[client_id]["pair"] != 0:
-                    client_socket.sendall("3".encode('utf-8'))
+                    client_socket.sendall("pair 3".encode('utf-8'))
                 else:
                     if pair_id in connected_clients:
                         client_info = connected_clients[client_id]
                         if client_info["pair"] == 0 and pair_id != client_id:
                             connected_clients[client_id]["pair"] = pair_id
                             connected_clients[pair_id]["pair"] = client_id
-                            client_socket.sendall("0".encode('utf-8'))
+                            connected_clients[pair_id]["socket"].sendall("pair 0".encode('utf-8'))
+                            client_socket.sendall("pair 0".encode('utf-8'))
                         else:
-                            client_socket.sendall("2".encode('utf-8'))
+                            client_socket.sendall("pair 2".encode('utf-8'))
                     else:
-                        client_socket.sendall("1".encode('utf-8'))
+                        client_socket.sendall("pair 1".encode('utf-8'))
+            elif data.startswith("disconnect"):
+                pair_id = connected_clients[client_id]["pair"]
+                if pair_id != 0:
+                    if pair_id in connected_clients:
+                            connected_clients[pair_id]["pair"] = 0
+                            pair_socket = connected_clients[pair_id]["socket"]
+                            pair_socket.sendall("disconnect".encode('utf-8'))
+
+                    connected_clients[client_id]["pair"] = 0
+                    client_socket.sendall("dis 0".encode('utf-8'))
+                else:
+                    client_socket.sendall("dis 1".encode('utf-8'))
 
         except ConnectionResetError:
             print(f"=== Client {client_address} forcibly closed the connection ===")
             break
-
+        
+    # not pair when disconnect    
+    pair_id = connected_clients[client_id]["pair"]
+    if pair_id != 0:
+        if pair_id in connected_clients:
+                connected_clients[pair_id]["pair"] = 0
+                pair_socket = connected_clients[pair_id]["socket"]
+                pair_socket.sendall("disconnect".encode('utf-8'))
     del connected_clients[client_id]
     connected.remove(client_socket)
     client_socket.close()
@@ -58,7 +78,7 @@ def accept_clients():
         print(f"=== Accepted connection : {client_id} - {client_address} ===")
 
         
-        connected_clients[client_id] = {"addr":client_address,"pair":0}
+        connected_clients[client_id] = {"addr":client_address,"pair":0,"socket":client_socket}
         client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address,client_id))
         client_thread.start()
 
