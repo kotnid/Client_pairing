@@ -20,9 +20,18 @@ def request_connected_clients():
 
 def choose_client():
     client_id = input("Enter the client ID to pair with: ")
-    client_socket.sendall(client_id.encode('utf-8'))
+    client_socket.sendall(f"pair {client_id}".encode('utf-8'))
     data = client_socket.recv(1024).decode('utf-8')
-    print("Response from server:", data)
+    if data == "0":
+        print("Connected")
+    elif data == "1":
+        print("Client not found")
+    elif data == "2":
+        print("Client not available")
+    elif data == "3":
+        print("Connected to other client already")
+
+
 
 def start_client():
     connect_to_server()

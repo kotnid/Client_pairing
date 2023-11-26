@@ -9,6 +9,7 @@ import uuid
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = (func.get_ip(), 9999)
 connected_clients = {}
+connected = []
 
 # Handle incoming messages
 def handle_client(client_socket, client_address,client_id):
@@ -23,15 +24,29 @@ def handle_client(client_socket, client_address,client_id):
             print(f"=== Received data from {client_address}: {data} ===")
 
             if data == "get_clients":
-                #  client_socket.sendall(str(list(connected_clients.values())).encode('utf-8'))
                 client_socket.sendall(func.print_list(connected_clients).encode('utf-8'))
-
+            elif data.startswith("pair"):
+                pair_id = data.split(" ")[1]
+                if connected_clients[client_id]["pair"] != 0:
+                    client_socket.sendall("3".encode('utf-8'))
+                else:
+                    if pair_id in connected_clients:
+                        client_info = connected_clients[client_id]
+                        if client_info["pair"] == 0 and pair_id != client_id:
+                            connected_clients[client_id]["pair"] = pair_id
+                            connected_clients[pair_id]["pair"] = client_id
+                            client_socket.sendall("0".encode('utf-8'))
+                        else:
+                            client_socket.sendall("2".encode('utf-8'))
+                    else:
+                        client_socket.sendall("1".encode('utf-8'))
 
         except ConnectionResetError:
             print(f"=== Client {client_address} forcibly closed the connection ===")
             break
 
     del connected_clients[client_id]
+    connected.remove(client_socket)
     client_socket.close()
 
 # Accept new clients
@@ -39,6 +54,7 @@ def accept_clients():
     while True:
         client_socket, client_address = server_socket.accept()
         client_id = str(uuid.uuid4())[:6]
+        connected.append(client_socket)
         print(f"=== Accepted connection : {client_id} - {client_address} ===")
 
         
@@ -57,6 +73,9 @@ def start_server():
 # terminate program by ctr+c
 def terminate_server(signal, frame):
     print("\n=== Terminating the server ===")
+    for client_socket in connected:
+        client_socket.close()
+
     server_socket.close()
     sys.exit(0)
 
